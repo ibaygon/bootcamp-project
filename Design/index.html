@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- 3.3-->
+    <title>TaskFlow</title>
+    <link rel="stylesheet" href="style.css">
+
+
+</head>
+<body>
+   
+    <header>
+        <h1>TaskFlow</h1>
+    </header>
+
+    <!-- 3.4-->
+    <main>
+        <section id="formulario">
+            <h2>Añadir nueva tarea</h2>
+            <form id="task-form">
+                <label for="task-input">Nombre de la tarea:</label>
+                <input type="text" id="task-input" name="task" required>
+                <button type="submit">Agregar</button>
+            </form>
+        </section>
+
+        <!-- 3.5-->
+        <section id="lista-tareas">
+            <h2>Lista de tareas</h2>
+            <ul id="tasks"></ul>
+
+            <!-- 3.7 -->
+            <template id="task-template">
+                <li class="task">
+                    <input type="checkbox" class="task-check">
+                    <span class="task-text"></span>
+                    <button class="delete-btn">Eliminar</button>
+                </li>
+            </template>
+        </section>
+
+    <!-- 3.6-->
+    <aside>
+        <h2>Estadísticas</h2>
+        <p>Total: <span id="total">0</span></p>
+        <p>Completadas: <span id="completed">0</span></p>
+        <p>Pendientes: <span id="pending">0</span></p>
+    </aside>
+</main>
+
+    <footer>
+        <p>2026 TaskFlow</p>
+    </footer>
+
+    
+<script src="app.js"></script>
+
+</body>
+</html>
