@@ -9,6 +9,24 @@ function loadTasks() {
   tasks = stored ? JSON.parse(stored) : [];
 }
 
+// 9.5 Guarda la preferencia del usuario en LocalStorage
+ 
+if (localStorage.getItem("theme") === "dark") {
+    document.documentElement.classList.add("dark");
+}
+
+document.getElementById("toggle-dark").addEventListener("click", () => {
+    const html = document.documentElement;
+
+    html.classList.toggle("dark");
+
+    if (html.classList.contains("dark")) {
+        localStorage.setItem("theme", "dark");
+    } else {
+        localStorage.setItem("theme", "light");
+    }
+});
+
 
 
 // 6.1 Crea el archivo app.js

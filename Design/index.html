@@ -5,64 +5,114 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <!-- 3.3 Añade un título principal de la aplicación -->
     <title>TaskFlow</title>
+    
     <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="style.css">
-
-
+    <script>
+      tailwind.config = {
+        darkMode: 'class'
+      }
+    </script>
 </head>
-<body>
-   
-    <header>
-        <h1>TaskFlow</h1>
-    </header>
+
+<!-- 9.3 Implementa modo oscuro usando clases dark: (Esta en todo el codigo no solo aqui) -->
+<body class="bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-100">
+
+   <header class="bg-blue-600 text-white py-6 shadow">
+      <div class="max-w-3xl mx-auto flex items-center justify-between relative">
+        <h1 class="text-3xl font-bold">TaskFlow</h1>
+
+        <!-- 9.4 Añade un botón que permita activar o desactivar el modo oscuro -->
+        <button 
+            id="toggle-dark" 
+            class="bg-gray-200 text-gray-800 dark:bg-gray-700 dark:text-gray-100 px-3 py-1 rounded"
+        >
+            🌙
+        </button>
+      </div>
+   </header>
 
     <!-- 3.4 Crea un formulario para añadir nuevas tareas -->
-    <main>
-        <section id="formulario">
-            <h2>Añadir nueva tarea</h2>
-            <form id="task-form">
-                <label for="task-input">Nombre de la tarea:</label>
-                <input type="text" id="task-input" name="task" required>
-                <button type="submit">Agregar</button>
+    <main class="p-6">
+      <div class="max-w-3xl mx-auto space-y-6">
+
+        <!-- 3.6 Crea un panel lateral para mostrar estadísticas (total, completadas y pendientes) -->
+        <aside class="w-full bg-white dark:bg-gray-800 p-6 rounded shadow">
+            <h2 class="text-xl font-semibold mb-4">Estadísticas</h2>
+            <p>Total: <span id="total">0</span></p>
+            <p>Completadas: <span id="completed">0</span></p>
+            <p>Pendientes: <span id="pending">0</span></p>
+        </aside>
+
+        <section id="formulario" class="w-full bg-white dark:bg-gray-800 p-6 rounded shadow">
+            <h2 class="text-xl font-semibold mb-4">Añadir nueva tarea</h2>
+
+            <form id="task-form" class="flex flex-wrap gap-4 items-center">
+                <label for="task-input" class="w-full font-medium">Nombre de la tarea:</label>
+
+                <input 
+                    type="text" 
+                    id="task-input" 
+                    name="task" 
+                    required
+                    class="flex-1 min-w-[200px] px-3 py-2 border rounded dark:bg-gray-700 dark:border-gray-600"
+                    placeholder="Escribe una nueva tarea..."
+                >
+
+                <button 
+                    type="submit"
+                    class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+                >
+                    Agregar
+                </button>
             </form>
         </section>
 
         <!-- 3.5 Añade una lista donde se mostrarán las tareas -->
-        <section id="lista-tareas">
-            <h2>Lista de tareas</h2>
-            <ul id="tasks"></ul>
+        <section id="lista-tareas" class="w-full bg-white dark:bg-gray-800 p-6 rounded shadow">
+            <h2 class="text-xl font-semibold mb-4">Lista de tareas</h2>
+
+            <div id="filters" class="flex gap-3 mb-4">
+                <button data-filter="all" class="px-3 py-1 bg-gray-200 dark:bg-gray-700 rounded">Todas</button>
+                <button data-filter="pending" class="px-3 py-1 bg-gray-200 dark:bg-gray-700 rounded">Activas</button>
+                <button data-filter="completed" class="px-3 py-1 bg-gray-200 dark:bg-gray-700 rounded">Completadas</button>
+            </div>
+
+            <input 
+                type="text" 
+                id="search" 
+                placeholder="Buscar tareas..."
+                class="w-full mb-4 px-3 py-2 border rounded dark:bg-gray-700 dark:border-gray-600"
+            >
+
+            <div class="flex flex-col md:flex-row gap-3 mb-4">
+                <button id="complete-all" class="flex-1 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
+                    Completar todas
+                </button>
+
+                <button id="delete-completed" class="flex-1 px-4 py-2 bg-red-600 text-white rounded hover:bg-red-700">
+                    Eliminar completadas
+                </button>
+            </div>
+
+            <ul id="tasks" class="space-y-3"></ul>
 
             <!-- 3.7 Define una plantilla (template) o estructura base para cada tarea -->
             <template id="task-template">
-                <li class="task">
+                <li class="task flex items-center gap-3 bg-gray-100 dark:bg-gray-700 p-3 rounded shadow">
                     <input type="checkbox" class="task-check">
-                    <span class="task-text"></span>
-                    <button class="delete-btn">Eliminar</button>
+                    <span class="task-text flex-1"></span>
+                    <button class="delete-btn px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700">Eliminar</button>
                 </li>
             </template>
         </section>
 
-    <!-- 3.6 Crea un panel lateral para mostrar estadísticas (total, completadas y pendientes) -->
-    <aside>
-        <h2>Estadísticas</h2>
-        <p>Total: <span id="total">0</span></p>
-        <p>Completadas: <span id="completed">0</span></p>
-        <p>Pendientes: <span id="pending">0</span></p>
-    </aside>
+      </div>
+    </main>
 
-    <input id="search" placeholder="Buscar tareas">
-
-<button id="complete-all">Completar todas</button>
-<button id="delete-completed">Eliminar completadas</button>
-
-</main>
-
-    <footer>
+    <footer class="text-center py-4 text-gray-600 dark:text-gray-400">
         <p>2026 TaskFlow</p>
     </footer>
 
-    
-<script src="app.js"></script>
-
+    <script src="app.js"></script>
 </body>
 </html>
