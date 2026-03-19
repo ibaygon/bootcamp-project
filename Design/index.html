@@ -3,8 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <!-- 3.3-->
+    <!-- 3.3 Añade un título principal de la aplicación -->
     <title>TaskFlow</title>
+    <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="style.css">
 
 
@@ -15,7 +16,7 @@
         <h1>TaskFlow</h1>
     </header>
 
-    <!-- 3.4-->
+    <!-- 3.4 Crea un formulario para añadir nuevas tareas -->
     <main>
         <section id="formulario">
             <h2>Añadir nueva tarea</h2>
@@ -26,12 +27,12 @@
             </form>
         </section>
 
-        <!-- 3.5-->
+        <!-- 3.5 Añade una lista donde se mostrarán las tareas -->
         <section id="lista-tareas">
             <h2>Lista de tareas</h2>
             <ul id="tasks"></ul>
 
-            <!-- 3.7 -->
+            <!-- 3.7 Define una plantilla (template) o estructura base para cada tarea -->
             <template id="task-template">
                 <li class="task">
                     <input type="checkbox" class="task-check">
@@ -41,13 +42,19 @@
             </template>
         </section>
 
-    <!-- 3.6-->
+    <!-- 3.6 Crea un panel lateral para mostrar estadísticas (total, completadas y pendientes) -->
     <aside>
         <h2>Estadísticas</h2>
         <p>Total: <span id="total">0</span></p>
         <p>Completadas: <span id="completed">0</span></p>
         <p>Pendientes: <span id="pending">0</span></p>
     </aside>
+
+    <input id="search" placeholder="Buscar tareas">
+
+<button id="complete-all">Completar todas</button>
+<button id="delete-completed">Eliminar completadas</button>
+
 </main>
 
     <footer>
