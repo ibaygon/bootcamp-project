@@ -87,36 +87,44 @@ function renderTasks() {
   );
 
   filteredTasks.forEach(task => {
-    const clone = template.content.cloneNode(true);
+  const clone = template.content.cloneNode(true);
 
-    const li = clone.querySelector("li");
-    const checkbox = clone.querySelector(".task-check");
-    const text = clone.querySelector(".task-text");
-    const deleteBtn = clone.querySelector(".delete-btn");
+  const li = clone.querySelector("li");
+  const checkbox = clone.querySelector(".task-check");
+  const text = clone.querySelector(".task-text");
+  const deleteBtn = clone.querySelector(".delete-btn");
 
-    text.textContent = task.title;
-    checkbox.checked = task.completed;
+  text.textContent = task.title;
+  checkbox.checked = task.completed;
 
-    // 8.3 Permite editar el título de una tarea existente
-    text.addEventListener("dblclick", () => {
-      const newTitle = prompt("Editar tarea:", task.title);
-      if (newTitle && newTitle.trim() !== "") {
-        task.title = newTitle.trim();
-        saveTasks();
-        renderTasks();
-      }
-    });
-
-    checkbox.addEventListener("change", () => toggleTask(task.id));
-    deleteBtn.addEventListener("click", () => deleteTask(task.id));
-
-    // Animacion crear
-    list.appendChild(clone);
-    requestAnimationFrame(() => {
-     li.classList.remove("opacity-0", "translate-y-2");
-    });
-
+  // 8.3 Permite editar el título de una tarea existente
+  text.addEventListener("dblclick", () => {
+    const newTitle = prompt("Editar tarea:", task.title);
+    if (newTitle && newTitle.trim() !== "") {
+      task.title = newTitle.trim();
+      saveTasks();
+      renderTasks();
+    }
   });
+
+  checkbox.addEventListener("change", () => toggleTask(task.id));
+
+  // Animación + eliminar
+deleteBtn.addEventListener("click", () => {
+  li.classList.add("opacity-0", "translate-y-2");
+  setTimeout(() => {
+    deleteTask(task.id);
+  }, 300);
+});
+
+
+  // Animación crear
+  list.appendChild(clone);
+  requestAnimationFrame(() => {
+    li.classList.remove("opacity-0", "translate-y-2");
+  });
+});
+
 }
 
 
@@ -131,13 +139,6 @@ function toggleTask(id) {
   updateStats();
 }
 
-// Animacion eliminar
-li.classList.add("opacity-0", "translate-y-2");
-setTimeout(() => {
-    deleteTask(task.id);
-}, 300);
-
-
 // 6.6 Permite eliminar tareas
 function deleteTask(id) {
   tasks = tasks.filter(task => task.id !== id);
@@ -145,7 +146,6 @@ function deleteTask(id) {
   renderTasks();
   updateStats();
 }
-
 
 
 // 6.7 Actualiza las estadísticas cuando cambien las tareas
