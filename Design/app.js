@@ -31,7 +31,7 @@ document.getElementById("toggle-dark").addEventListener("click", () => {
 
 // 6.1 Crea el archivo app.js
 let tasks = [];
-let currentFilter = "all"; // filtro: all | pending | completed
+let currentFilter = "all"; 
 
 
 
@@ -110,7 +110,12 @@ function renderTasks() {
     checkbox.addEventListener("change", () => toggleTask(task.id));
     deleteBtn.addEventListener("click", () => deleteTask(task.id));
 
+    // Animacion crear
     list.appendChild(clone);
+    requestAnimationFrame(() => {
+     li.classList.remove("opacity-0", "translate-y-2");
+    });
+
   });
 }
 
@@ -126,6 +131,11 @@ function toggleTask(id) {
   updateStats();
 }
 
+// Animacion eliminar
+li.classList.add("opacity-0", "translate-y-2");
+setTimeout(() => {
+    deleteTask(task.id);
+}, 300);
 
 
 // 6.6 Permite eliminar tareas
