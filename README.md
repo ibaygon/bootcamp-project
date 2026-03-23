@@ -3,7 +3,6 @@ Este es mi primer proyecto del bootcamp., consiste en crear una aplicación que 
 
 Acciones del usuario:
 
-
 -Crear tareas: escribiendo el nombre de la tarea y pulsando agregar.
 
 -Eliminar tareas: todas las tareas a su de recha tienen un botón de eliminar.
@@ -14,3 +13,5 @@ Acciones del usuario:
 
 -Filtrar: en el panel superior tiene la opción de filtrar por completadas, activas o ver el total de tareas
 
+Vercel:
+https://bootcamp-project-j83e.vercel.app/
