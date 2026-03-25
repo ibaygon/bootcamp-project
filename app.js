@@ -1,9 +1,16 @@
-// 7.1 Guarda las tareas en LocalStorage usando JSON.stringify
+/**
+ * Guarda las tareas en LocalStorage usando `JSON.stringify`.
+ * @returns {void}
+ */
 function saveTasks() {
   localStorage.setItem("tasks", JSON.stringify(tasks));
 }
 
-// 7.2 Recupera las tareas cuando se carga la página usando JSON.parse
+/**
+ * Recupera las tareas desde LocalStorage usando `JSON.parse`.
+ * Si no hay datos, inicializa `tasks` como array vacío.
+ * @returns {void}
+ */
 function loadTasks() {
   const stored = localStorage.getItem("tasks");
   tasks = stored ? JSON.parse(stored) : [];
@@ -35,6 +42,19 @@ let currentFilter = "all";
 
 
 
+/**
+ * Obtiene un elemento del DOM por `id`.
+ * @param {string} id
+ * @returns {HTMLElement | null}
+ */
+function getEl(id) {
+  return document.getElementById(id);
+}
+
+/**
+ * Genera un id único basado en el timestamp actual.
+ * @returns {string}
+ */
 function generateId() {
   return Date.now().toString();
 }
@@ -42,6 +62,11 @@ function generateId() {
 
 
 // 6.2 Define la estructura de una tarea como un objeto con id, title, completed y createdAt
+/**
+ * Crea una tarea nueva con un `id` único, texto y estado inicial `completed=false`.
+ * @param {string} title
+ * @returns {{id: string, title: string, completed: boolean, createdAt: string}}
+ */
 function createTask(title) {
   return {
     id: generateId(),
@@ -54,6 +79,11 @@ function createTask(title) {
 
 
 // 6.3 Implementa la funcionalidad para añadir nuevas tareas
+/**
+ * Añade una tarea al estado global, persiste en LocalStorage y actualiza UI/estadísticas.
+ * @param {string} title
+ * @returns {void}
+ */
 function addTask(title) {
   const newTask = createTask(title);
   tasks.push(newTask);
@@ -63,8 +93,11 @@ function addTask(title) {
 }
 
 
-
 // 6.4 Renderiza las tareas en el DOM
+/**
+ * Renderiza la lista de tareas aplicando filtros y búsqueda.
+ * @returns {void}
+ */
 function renderTasks() {
   const list = document.getElementById("tasks");
   const template = document.getElementById("task-template");
@@ -87,10 +120,18 @@ function renderTasks() {
 
 
 
+/**
+ * Lee el texto de búsqueda del input y lo normaliza a minúsculas.
+ * @returns {string}
+ */
 function getSearchText() {
   return document.getElementById("search")?.value.toLowerCase() || "";
 }
 
+/**
+ * Aplica el filtro de pestaña (`currentFilter`) y la búsqueda por texto sobre `tasks`.
+ * @returns {Array}
+ */
 function getFilteredTasks() {
   let filtered = tasks;
 
@@ -108,6 +149,12 @@ function getFilteredTasks() {
   );
 }
 
+/**
+ * Crea (clona) el nodo DOM de una tarea usando el template y rellena sus campos.
+ * @param {object} task
+ * @param {HTMLTemplateElement} template
+ * @returns {{clone: DocumentFragment, li: Element, checkbox: HTMLInputElement, text: Element, deleteBtn: HTMLButtonElement}}
+ */
 function createTaskElement(task, template) {
   const clone = template.content.cloneNode(true);
 
@@ -122,6 +169,12 @@ function createTaskElement(task, template) {
   return { clone, li, checkbox, text, deleteBtn };
 }
 
+/**
+ * Asigna listeners (editar, marcar completada, eliminar) a los elementos de la tarea.
+ * @param {object} task
+ * @param {{li: Element, checkbox: HTMLInputElement, text: Element, deleteBtn: HTMLButtonElement}} elements
+ * @returns {void}
+ */
 function attachTaskEventHandlers(task, { li, checkbox, text, deleteBtn }) {
   // Permite editar el título de una tarea existente
   text.addEventListener("dblclick", () => {
@@ -147,6 +200,11 @@ function attachTaskEventHandlers(task, { li, checkbox, text, deleteBtn }) {
 
 
 // 6.5 Permite marcar tareas como completadas
+/**
+ * Alterna `completed` de una tarea por `id` y refresca UI/estadísticas.
+ * @param {string} id
+ * @returns {void}
+ */
 function toggleTask(id) {
   tasks = tasks.map(task =>
     task.id === id ? { ...task, completed: !task.completed } : task
@@ -157,6 +215,11 @@ function toggleTask(id) {
 }
 
 // 6.6 Permite eliminar tareas
+/**
+ * Elimina la tarea indicada y refresca UI/estadísticas.
+ * @param {string} id
+ * @returns {void}
+ */
 function deleteTask(id) {
   tasks = tasks.filter(task => task.id !== id);
   saveTasks(); 
@@ -166,6 +229,11 @@ function deleteTask(id) {
 
 
 // 6.7 Actualiza las estadísticas cuando cambien las tareas
+/**
+ * Calcula estadísticas sobre una lista de tareas.
+ * @param {Array<{completed: boolean}>} tasksToMeasure
+ * @returns {{total: number, completed: number, pending: number}}
+ */
 function getStats(tasksToMeasure) {
   const total = tasksToMeasure.length;
   const completed = tasksToMeasure.filter(t => t.completed).length;
@@ -174,6 +242,10 @@ function getStats(tasksToMeasure) {
   return { total, completed, pending };
 }
 
+/**
+ * Actualiza los valores del panel de estadísticas en el DOM.
+ * @returns {void}
+ */
 function updateStats() {
   const { total, completed, pending } = getStats(tasks);
 
@@ -184,57 +256,85 @@ function updateStats() {
 
 
 
-// 6.8 Evita repetir código creando funciones reutilizables
-document.getElementById("task-form").addEventListener("submit", function (e) {
-  e.preventDefault();
+/**
+ * Registra el submit del formulario para añadir nuevas tareas.
+ * @returns {void}
+ */
+function setupTaskForm() {
+  const form = getEl("task-form");
+  const input = getEl("task-input");
+  if (!form || !input) return;
 
-  const input = document.getElementById("task-input");
-  const title = input.value.trim();
+  form.addEventListener("submit", function (e) {
+    e.preventDefault();
 
-  if (title !== "") {
+    const title = input.value.trim();
+    if (title === "") return;
+
     addTask(title);
     input.value = "";
-  }
-});
-
-
-
-// 8.1 Implementa un filtro para ver tareas: todas, pendientes y completadas
-document.querySelectorAll("#filters button").forEach(btn => {
-  btn.addEventListener("click", () => {
-    currentFilter = btn.dataset.filter;
-    renderTasks();
   });
-});
+}
 
+/**
+ * Registra el comportamiento de los botones de filtro.
+ * @returns {void}
+ */
+function setupFilters() {
+  document.querySelectorAll("#filters button").forEach(btn => {
+    btn.addEventListener("click", () => {
+      currentFilter = btn.dataset.filter;
+      renderTasks();
+    });
+  });
+}
 
+/**
+ * Registra la búsqueda incremental por texto.
+ * @returns {void}
+ */
+function setupSearch() {
+  const search = getEl("search");
+  search?.addEventListener("input", renderTasks);
+}
 
-// 8.2 Añade una búsqueda por texto en las tareas
-document.getElementById("search").addEventListener("input", renderTasks);
+/**
+ * Registra acciones masivas: completar todas y eliminar completadas.
+ * @returns {void}
+ */
+function setupBulkActions() {
+  const completeAllBtn = getEl("complete-all");
+  const deleteCompletedBtn = getEl("delete-completed");
 
+  completeAllBtn?.addEventListener("click", () => {
+    tasks = tasks.map(t => ({ ...t, completed: true }));
+    saveTasks();
+    renderTasks();
+    updateStats();
+  });
 
+  deleteCompletedBtn?.addEventListener("click", () => {
+    tasks = tasks.filter(t => !t.completed);
+    saveTasks();
+    renderTasks();
+    updateStats();
+  });
+}
 
-// 8.4 Añade un botón para marcar todas las tareas como completadas
-document.getElementById("complete-all").addEventListener("click", () => {
-  tasks = tasks.map(t => ({ ...t, completed: true }));
-  saveTasks();
+/**
+ * Inicializa TaskFlow: registra listeners y realiza render inicial.
+ * @returns {void}
+ */
+function initTaskFlow() {
+  setupTaskForm();
+  setupFilters();
+  setupSearch();
+  setupBulkActions();
+
+  // Carga desde LocalStorage y renderiza por primera vez.
+  loadTasks();
   renderTasks();
   updateStats();
-});
+}
 
-
-
-// 8.5 Añade un botón para borrar todas las tareas completadas
-document.getElementById("delete-completed").addEventListener("click", () => {
-  tasks = tasks.filter(t => !t.completed);
-  saveTasks();
-  renderTasks();
-  updateStats();
-});
-
-
-
-// 7.3 Maneja correctamente el caso en que no haya datos guardados
-loadTasks();   
-renderTasks();
-updateStats();
+initTaskFlow();
