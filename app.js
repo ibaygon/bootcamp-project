@@ -68,25 +68,47 @@ function addTask(title) {
 function renderTasks() {
   const list = document.getElementById("tasks");
   const template = document.getElementById("task-template");
-  const searchText = document.getElementById("search")?.value.toLowerCase() || "";
+  list.innerHTML = "";
 
-  list.innerHTML = ""; 
-
-  let filteredTasks = tasks;
-
-  // 8.1 Implementa un filtro para ver tareas: todas, pendientes y completadas
-  if (currentFilter === "pending") {
-    filteredTasks = filteredTasks.filter(t => !t.completed);
-  } else if (currentFilter === "completed") {
-    filteredTasks = filteredTasks.filter(t => t.completed);
-  }
-
-  // 8.2 Añade una búsqueda por texto en las tareas
-  filteredTasks = filteredTasks.filter(task =>
-    task.title.toLowerCase().includes(searchText)
-  );
+  const filteredTasks = getFilteredTasks();
 
   filteredTasks.forEach(task => {
+    const { clone, li, checkbox, text, deleteBtn } = createTaskElement(task, template);
+    attachTaskEventHandlers(task, { li, checkbox, text, deleteBtn });
+
+    // Animación crear
+    list.appendChild(clone);
+    requestAnimationFrame(() => {
+      li.classList.remove("opacity-0", "translate-y-2");
+    });
+  });
+
+}
+
+
+
+function getSearchText() {
+  return document.getElementById("search")?.value.toLowerCase() || "";
+}
+
+function getFilteredTasks() {
+  let filtered = tasks;
+
+  // Filtro por pestaña: todas, pendientes y completadas
+  if (currentFilter === "pending") {
+    filtered = filtered.filter(t => !t.completed);
+  } else if (currentFilter === "completed") {
+    filtered = filtered.filter(t => t.completed);
+  }
+
+  // Búsqueda por texto en las tareas
+  const searchText = getSearchText();
+  return filtered.filter(task =>
+    task.title.toLowerCase().includes(searchText)
+  );
+}
+
+function createTaskElement(task, template) {
   const clone = template.content.cloneNode(true);
 
   const li = clone.querySelector("li");
@@ -97,7 +119,11 @@ function renderTasks() {
   text.textContent = task.title;
   checkbox.checked = task.completed;
 
-  // 8.3 Permite editar el título de una tarea existente
+  return { clone, li, checkbox, text, deleteBtn };
+}
+
+function attachTaskEventHandlers(task, { li, checkbox, text, deleteBtn }) {
+  // Permite editar el título de una tarea existente
   text.addEventListener("dblclick", () => {
     const newTitle = prompt("Editar tarea:", task.title);
     if (newTitle && newTitle.trim() !== "") {
@@ -107,26 +133,17 @@ function renderTasks() {
     }
   });
 
+  // Permite marcar tareas como completadas
   checkbox.addEventListener("change", () => toggleTask(task.id));
 
   // Animación + eliminar
-deleteBtn.addEventListener("click", () => {
-  li.classList.add("opacity-0", "translate-y-2");
-  setTimeout(() => {
-    deleteTask(task.id);
-  }, 300);
-});
-
-
-  // Animación crear
-  list.appendChild(clone);
-  requestAnimationFrame(() => {
-    li.classList.remove("opacity-0", "translate-y-2");
+  deleteBtn.addEventListener("click", () => {
+    li.classList.add("opacity-0", "translate-y-2");
+    setTimeout(() => {
+      deleteTask(task.id);
+    }, 300);
   });
-});
-
 }
-
 
 
 // 6.5 Permite marcar tareas como completadas
@@ -149,10 +166,16 @@ function deleteTask(id) {
 
 
 // 6.7 Actualiza las estadísticas cuando cambien las tareas
-function updateStats() {
-  const total = tasks.length;
-  const completed = tasks.filter(t => t.completed).length;
+function getStats(tasksToMeasure) {
+  const total = tasksToMeasure.length;
+  const completed = tasksToMeasure.filter(t => t.completed).length;
   const pending = total - completed;
+
+  return { total, completed, pending };
+}
+
+function updateStats() {
+  const { total, completed, pending } = getStats(tasks);
 
   document.getElementById("total").textContent = total;
   document.getElementById("completed").textContent = completed;
