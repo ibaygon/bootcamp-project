@@ -268,6 +268,9 @@ function attachTaskEventHandlers(task, { li, checkbox, text, deleteBtn }) {
 
   // Animación + eliminar
   deleteBtn.addEventListener("click", () => {
+    const ok = confirm("¿Seguro que quieres borrar esta tarea?");
+    if (!ok) return;
+
     li.classList.add("opacity-0", "translate-y-2");
     setTimeout(() => {
       deleteTask(task.id);
