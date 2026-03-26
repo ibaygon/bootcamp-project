@@ -45,6 +45,7 @@ document.getElementById("toggle-dark").addEventListener("click", () => {
 let tasks = [];
 let currentFilter = "all"; 
 let currentPriorityFilter = "all";
+let currentSort = "date";
 
 /**
  * Normaliza una prioridad para que siempre sea: "alta" | "media" | "baja".
@@ -140,8 +141,9 @@ function renderTasks() {
   list.innerHTML = "";
 
   const filteredTasks = getFilteredTasks();
+  const visibleTasks = sortTasks(currentSort, filteredTasks);
 
-  filteredTasks.forEach(task => {
+  visibleTasks.forEach(task => {
     const { clone, li, checkbox, text, deleteBtn } = createTaskElement(task, template);
     attachTaskEventHandlers(task, { li, checkbox, text, deleteBtn });
 
@@ -188,6 +190,35 @@ function getFilteredTasks() {
   return filtered.filter(task =>
     task.title.toLowerCase().includes(searchText)
   );
+}
+
+/**
+ * Ordena tareas sin modificar los datos originales (devuelve un array nuevo).
+ * criteria: "date" | "name" | "priority"
+ * @param {"date"|"name"|"priority"} criteria
+ * @param {Array<{title: string, createdAt: string, priority?: string}>} tasksToSort
+ * @returns {Array}
+ */
+function sortTasks(criteria, tasksToSort) {
+  const list = Array.isArray(tasksToSort) ? [...tasksToSort] : [];
+
+  const priorityRank = (p) => {
+    const pr = normalizePriority(p);
+    if (pr === "alta") return 0;
+    if (pr === "media") return 1;
+    return 2; // baja
+  };
+
+  if (criteria === "name") {
+    return list.sort((a, b) => a.title.localeCompare(b.title, "es", { sensitivity: "base" }));
+  }
+
+  if (criteria === "priority") {
+    return list.sort((a, b) => priorityRank(a.priority) - priorityRank(b.priority));
+  }
+
+  // "date" (por defecto): más recientes primero
+  return list.sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
 }
 
 /**
@@ -387,6 +418,20 @@ function setupPriorityFilter() {
 }
 
 /**
+ * Registra el selector de ordenación.
+ * @returns {void}
+ */
+function setupSort() {
+  const sortSelect = getEl("sort");
+  if (!sortSelect) return;
+
+  sortSelect.addEventListener("change", () => {
+    currentSort = sortSelect.value;
+    renderTasks();
+  });
+}
+
+/**
  * Registra acciones masivas: completar todas y eliminar completadas.
  * @returns {void}
  */
@@ -418,6 +463,7 @@ function initTaskFlow() {
   setupFilters();
   setupSearch();
   setupPriorityFilter();
+  setupSort();
   setupBulkActions();
 
   // Carga desde LocalStorage y renderiza por primera vez.
