@@ -55,9 +55,14 @@
                     id="task-input" 
                     name="task" 
                     required
+                    maxlength="50"
                     class="flex-1 min-w-[200px] px-3 py-2 border rounded dark:bg-gray-700 dark:border-gray-600"
                     placeholder="Escribe una nueva tarea..."
                 >
+
+                <p id="char-counter" class="w-full text-sm text-gray-600 dark:text-gray-300">
+                    0/50 caracteres
+                </p>
 
                 <label for="task-priority" class="w-full font-medium">Prioridad:</label>
                 <select

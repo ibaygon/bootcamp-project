@@ -385,6 +385,26 @@ function setupTaskForm() {
 }
 
 /**
+ * Muestra y actualiza el contador de caracteres del input.
+ * @returns {void}
+ */
+function setupCharCounter() {
+  const input = getEl("task-input");
+  const counter = getEl("char-counter");
+  if (!input || !counter) return;
+
+  const max = Number(input.getAttribute("maxlength")) || 50;
+
+  const render = () => {
+    const len = (input.value || "").length;
+    counter.textContent = `${len}/${max} caracteres`;
+  };
+
+  render();
+  input.addEventListener("input", render);
+}
+
+/**
  * Registra el comportamiento de los botones de filtro.
  * @returns {void}
  */
@@ -463,6 +483,7 @@ function setupBulkActions() {
  */
 function initTaskFlow() {
   setupTaskForm();
+  setupCharCounter();
   setupFilters();
   setupSearch();
   setupPriorityFilter();
