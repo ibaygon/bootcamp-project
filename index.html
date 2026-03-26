@@ -59,6 +59,17 @@
                     placeholder="Escribe una nueva tarea..."
                 >
 
+                <label for="task-priority" class="w-full font-medium">Prioridad:</label>
+                <select
+                    id="task-priority"
+                    name="priority"
+                    class="px-3 py-2 border rounded dark:bg-gray-700 dark:border-gray-600"
+                >
+                    <option value="alta">Alta</option>
+                    <option value="media" selected>Media</option>
+                    <option value="baja">Baja</option>
+                </select>
+
                 <button 
                     type="submit"
                     class="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
@@ -78,12 +89,23 @@
                 <button data-filter="completed" class="px-3 py-1 bg-gray-200 dark:bg-gray-700 rounded">Completadas</button>
             </div>
 
-            <input 
-                type="text" 
-                id="search" 
-                placeholder="Buscar tareas..."
-                class="w-full mb-4 px-3 py-2 border rounded dark:bg-gray-700 dark:border-gray-600"
-            >
+            <div class="flex flex-col md:flex-row gap-3 mb-4">
+                <input 
+                    type="text" 
+                    id="search" 
+                    placeholder="Buscar tareas..."
+                    class="flex-1 px-3 py-2 border rounded dark:bg-gray-700 dark:border-gray-600"
+                >
+                <select
+                    id="priority-filter"
+                    class="px-3 py-2 border rounded dark:bg-gray-700 dark:border-gray-600 md:w-[220px]"
+                >
+                    <option value="all" selected>Todas las prioridades</option>
+                    <option value="alta">Solo alta</option>
+                    <option value="media">Solo media</option>
+                    <option value="baja">Solo baja</option>
+                </select>
+            </div>
 
             <div class="flex flex-col md:flex-row gap-3 mb-4">
                 <button id="complete-all" class="flex-1 px-4 py-2 bg-green-600 text-white rounded hover:bg-green-700">
@@ -102,6 +124,7 @@
                 <li class="task flex items-center gap-3 bg-gray-100 dark:bg-gray-700 p-3 rounded shadow transition-all duration-300 ease-out opacity-0 translate-y-2">
                     <input type="checkbox" class="task-check">
                     <span class="task-text flex-1"></span>
+                    <span class="task-priority px-2 py-1 text-xs font-semibold rounded"></span>
                     <button class="delete-btn px-3 py-1 bg-red-600 text-white rounded hover:bg-red-700">Eliminar</button>
                 </li>
             </template>

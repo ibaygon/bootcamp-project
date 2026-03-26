@@ -13,7 +13,12 @@ function saveTasks() {
  */
 function loadTasks() {
   const stored = localStorage.getItem("tasks");
-  tasks = stored ? JSON.parse(stored) : [];
+  const rawTasks = stored ? JSON.parse(stored) : [];
+
+  // Compatibilidad: si hay tareas antiguas sin priority, se añade "media".
+  tasks = Array.isArray(rawTasks)
+    ? rawTasks.map(t => ({ ...t, priority: normalizePriority(t?.priority) }))
+    : [];
 }
 
 // 9.5 Guarda la preferencia del usuario en LocalStorage
@@ -39,6 +44,34 @@ document.getElementById("toggle-dark").addEventListener("click", () => {
 // 6.1 Crea el archivo app.js
 let tasks = [];
 let currentFilter = "all"; 
+let currentPriorityFilter = "all";
+
+/**
+ * Normaliza una prioridad para que siempre sea: "alta" | "media" | "baja".
+ * @param {unknown} priority
+ * @returns {"alta"|"media"|"baja"}
+ */
+function normalizePriority(priority) {
+  const p = (typeof priority === "string" ? priority : "").toLowerCase();
+  if (p === "alta" || p === "media" || p === "baja") return p;
+  return "media";
+}
+
+/**
+ * Devuelve texto y clases Tailwind para cada prioridad.
+ * @param {"alta"|"media"|"baja"} priority
+ * @returns {{label: string, className: string}}
+ */
+function getPriorityMeta(priority) {
+  const p = normalizePriority(priority);
+  if (p === "alta") {
+    return { label: "Alta", className: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100" };
+  }
+  if (p === "baja") {
+    return { label: "Baja", className: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100" };
+  }
+  return { label: "Media", className: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100" };
+}
 
 
 
@@ -65,14 +98,16 @@ function generateId() {
 /**
  * Crea una tarea nueva con un `id` único, texto y estado inicial `completed=false`.
  * @param {string} title
- * @returns {{id: string, title: string, completed: boolean, createdAt: string}}
+ * @param {"alta"|"media"|"baja"} [priority]
+ * @returns {{id: string, title: string, completed: boolean, createdAt: string, priority: "alta"|"media"|"baja"}}
  */
-function createTask(title) {
+function createTask(title, priority = "media") {
   return {
     id: generateId(),
     title: title,
     completed: false,
-    createdAt: new Date().toISOString()
+    createdAt: new Date().toISOString(),
+    priority: normalizePriority(priority)
   };
 }
 
@@ -82,10 +117,11 @@ function createTask(title) {
 /**
  * Añade una tarea al estado global, persiste en LocalStorage y actualiza UI/estadísticas.
  * @param {string} title
+ * @param {"alta"|"media"|"baja"} priority
  * @returns {void}
  */
-function addTask(title) {
-  const newTask = createTask(title);
+function addTask(title, priority) {
+  const newTask = createTask(title, priority);
   tasks.push(newTask);
   saveTasks(); 
   renderTasks();
@@ -142,6 +178,11 @@ function getFilteredTasks() {
     filtered = filtered.filter(t => t.completed);
   }
 
+  // Filtro por prioridad (opcional)
+  if (currentPriorityFilter !== "all") {
+    filtered = filtered.filter(t => normalizePriority(t.priority) === currentPriorityFilter);
+  }
+
   // Búsqueda por texto en las tareas
   const searchText = getSearchText();
   return filtered.filter(task =>
@@ -161,10 +202,17 @@ function createTaskElement(task, template) {
   const li = clone.querySelector("li");
   const checkbox = clone.querySelector(".task-check");
   const text = clone.querySelector(".task-text");
+  const priorityEl = clone.querySelector(".task-priority");
   const deleteBtn = clone.querySelector(".delete-btn");
 
   text.textContent = task.title;
   checkbox.checked = task.completed;
+
+  if (priorityEl) {
+    const meta = getPriorityMeta(task.priority);
+    priorityEl.textContent = meta.label;
+    priorityEl.className = `task-priority px-2 py-1 text-xs font-semibold rounded ${meta.className}`;
+  }
 
   return { clone, li, checkbox, text, deleteBtn };
 }
@@ -287,7 +335,8 @@ function updateStats() {
 function setupTaskForm() {
   const form = getEl("task-form");
   const input = getEl("task-input");
-  if (!form || !input) return;
+  const prioritySelect = getEl("task-priority");
+  if (!form || !input || !prioritySelect) return;
 
   form.addEventListener("submit", function (e) {
     e.preventDefault();
@@ -295,7 +344,8 @@ function setupTaskForm() {
     const title = input.value.trim();
     if (title === "") return;
 
-    addTask(title);
+    const priority = normalizePriority(prioritySelect.value);
+    addTask(title, priority);
     input.value = "";
   });
 }
@@ -320,6 +370,20 @@ function setupFilters() {
 function setupSearch() {
   const search = getEl("search");
   search?.addEventListener("input", renderTasks);
+}
+
+/**
+ * Registra el filtro por prioridad.
+ * @returns {void}
+ */
+function setupPriorityFilter() {
+  const priorityFilter = getEl("priority-filter");
+  if (!priorityFilter) return;
+
+  priorityFilter.addEventListener("change", () => {
+    currentPriorityFilter = priorityFilter.value;
+    renderTasks();
+  });
 }
 
 /**
@@ -353,6 +417,7 @@ function initTaskFlow() {
   setupTaskForm();
   setupFilters();
   setupSearch();
+  setupPriorityFilter();
   setupBulkActions();
 
   // Carga desde LocalStorage y renderiza por primera vez.
