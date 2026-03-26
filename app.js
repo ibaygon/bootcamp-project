@@ -21,31 +21,20 @@ function loadTasks() {
     : [];
 }
 
-// 9.5 Guarda la preferencia del usuario en LocalStorage
- 
-if (localStorage.getItem("theme") === "dark") {
-    document.documentElement.classList.add("dark");
-}
-
-document.getElementById("toggle-dark").addEventListener("click", () => {
-    const html = document.documentElement;
-
-    html.classList.toggle("dark");
-
-    if (html.classList.contains("dark")) {
-        localStorage.setItem("theme", "dark");
-    } else {
-        localStorage.setItem("theme", "light");
-    }
-});
-
-
-
 // 6.1 Crea el archivo app.js
 let tasks = [];
 let currentFilter = "all"; 
 let currentPriorityFilter = "all";
 let currentSort = "date";
+
+/**
+ * @typedef {Object} Task
+ * @property {string} id - Identificador único.
+ * @property {string} title - Título/Nombre de la tarea.
+ * @property {boolean} completed - Estado de completada.
+ * @property {string} createdAt - Fecha ISO (ej: "2026-03-26T10:30:00.000Z").
+ * @property {"alta"|"media"|"baja"} priority - Prioridad de la tarea.
+ */
 
 /**
  * Normaliza una prioridad para que siempre sea: "alta" | "media" | "baja".
@@ -56,6 +45,27 @@ function normalizePriority(priority) {
   const p = (typeof priority === "string" ? priority : "").toLowerCase();
   if (p === "alta" || p === "media" || p === "baja") return p;
   return "media";
+}
+
+/**
+ * Registra el modo oscuro (lee/guarda preferencia en LocalStorage).
+ * @returns {void}
+ */
+function setupThemeToggle() {
+  const html = document.documentElement;
+  const btn = getEl("toggle-dark");
+  if (!btn) return;
+
+  // Cargar preferencia guardada
+  if (localStorage.getItem("theme") === "dark") {
+    html.classList.add("dark");
+  }
+
+  // Guardar preferencia al cambiar
+  btn.addEventListener("click", () => {
+    html.classList.toggle("dark");
+    localStorage.setItem("theme", html.classList.contains("dark") ? "dark" : "light");
+  });
 }
 
 /**
@@ -100,7 +110,7 @@ function generateId() {
  * Crea una tarea nueva con un `id` único, texto y estado inicial `completed=false`.
  * @param {string} title
  * @param {"alta"|"media"|"baja"} [priority]
- * @returns {{id: string, title: string, completed: boolean, createdAt: string, priority: "alta"|"media"|"baja"}}
+ * @returns {Task}
  */
 function createTask(title, priority = "media") {
   return {
@@ -168,7 +178,7 @@ function getSearchText() {
 
 /**
  * Aplica el filtro de pestaña (`currentFilter`) y la búsqueda por texto sobre `tasks`.
- * @returns {Array}
+ * @returns {Task[]}
  */
 function getFilteredTasks() {
   let filtered = tasks;
@@ -196,8 +206,8 @@ function getFilteredTasks() {
  * Ordena tareas sin modificar los datos originales (devuelve un array nuevo).
  * criteria: "date" | "name" | "priority"
  * @param {"date"|"name"|"priority"} criteria
- * @param {Array<{title: string, createdAt: string, priority?: string}>} tasksToSort
- * @returns {Array}
+ * @param {Task[]} tasksToSort
+ * @returns {Task[]}
  */
 function sortTasks(criteria, tasksToSort) {
   const list = Array.isArray(tasksToSort) ? [...tasksToSort] : [];
@@ -214,16 +224,24 @@ function sortTasks(criteria, tasksToSort) {
   }
 
   if (criteria === "priority") {
-    return list.sort((a, b) => priorityRank(a.priority) - priorityRank(b.priority));
+    return list.sort((a, b) => {
+      const byPriority = priorityRank(a.priority) - priorityRank(b.priority);
+      if (byPriority !== 0) return byPriority;
+      return (b.createdAt || "").localeCompare(a.createdAt || "");
+    });
   }
 
   // "date" (por defecto): más recientes primero
-  return list.sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
+  return list.sort((a, b) => {
+    const byDate = (b.createdAt || "").localeCompare(a.createdAt || "");
+    if (byDate !== 0) return byDate;
+    return a.title.localeCompare(b.title, "es", { sensitivity: "base" });
+  });
 }
 
 /**
  * Crea (clona) el nodo DOM de una tarea usando el template y rellena sus campos.
- * @param {object} task
+ * @param {Task} task
  * @param {HTMLTemplateElement} template
  * @returns {{clone: DocumentFragment, li: Element, checkbox: HTMLInputElement, text: Element, deleteBtn: HTMLButtonElement}}
  */
@@ -250,7 +268,7 @@ function createTaskElement(task, template) {
 
 /**
  * Asigna listeners (editar, marcar completada, eliminar) a los elementos de la tarea.
- * @param {object} task
+ * @param {Task} task
  * @param {{li: Element, checkbox: HTMLInputElement, text: Element, deleteBtn: HTMLButtonElement}} elements
  * @returns {void}
  */
@@ -482,6 +500,7 @@ function setupBulkActions() {
  * @returns {void}
  */
 function initTaskFlow() {
+  setupThemeToggle();
   setupTaskForm();
   setupCharCounter();
   setupFilters();
