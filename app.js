@@ -180,9 +180,7 @@ function attachTaskEventHandlers(task, { li, checkbox, text, deleteBtn }) {
   text.addEventListener("dblclick", () => {
     const newTitle = prompt("Editar tarea:", task.title);
     if (newTitle && newTitle.trim() !== "") {
-      task.title = newTitle.trim();
-      saveTasks();
-      renderTasks();
+      editarTareaPorId(task.id, newTitle.trim());
     }
   });
 
@@ -212,6 +210,32 @@ function toggleTask(id) {
   saveTasks(); 
   renderTasks();
   updateStats();
+}
+
+/**
+ * Edita el título de una tarea buscando por `id`.
+ * @param {string} id
+ * @param {string} nuevoTitulo
+ * @returns {boolean} `true` si se editó, `false` si no se encontró o el título es inválido.
+ */
+function editarTareaPorId(id, nuevoTitulo) {
+  // 1) Buscar la tarea por su id
+  const task = tasks.find(t => t.id === id);
+  if (!task) return false;
+
+  // 2) Actualizar su título
+  const title = (nuevoTitulo ?? "").trim();
+  if (title === "") return false;
+  task.title = title;
+
+  // 3) Guardar los cambios en localStorage
+  saveTasks();
+
+  // 4) Volver a renderizar la lista
+  renderTasks();
+  updateStats();
+
+  return true;
 }
 
 // 6.6 Permite eliminar tareas
