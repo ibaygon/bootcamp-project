@@ -1,518 +1,199 @@
-/**
- * Guarda las tareas en LocalStorage usando `JSON.stringify`.
- * @returns {void}
- */
-function saveTasks() {
-  localStorage.setItem("tasks", JSON.stringify(tasks));
-}
+import { fetchTasksApi, createTaskApi, deleteTaskApi } from "./server/src/api/client.js";
 
-/**
- * Recupera las tareas desde LocalStorage usando `JSON.parse`.
- * Si no hay datos, inicializa `tasks` como array vacío.
- * @returns {void}
- */
-function loadTasks() {
-  const stored = localStorage.getItem("tasks");
-  const rawTasks = stored ? JSON.parse(stored) : [];
-
-  // Compatibilidad: si hay tareas antiguas sin priority, se añade "media".
-  tasks = Array.isArray(rawTasks)
-    ? rawTasks.map(t => ({ ...t, priority: normalizePriority(t?.priority) }))
-    : [];
-}
-
-// 6.1 Crea el archivo app.js
 let tasks = [];
-let currentFilter = "all"; 
+let currentFilter = "all";
 let currentPriorityFilter = "all";
 let currentSort = "date";
+let isLoading = false;
+let networkError = "";
+let networkSuccess = "";
 
-/**
- * @typedef {Object} Task
- * @property {string} id - Identificador único.
- * @property {string} title - Título/Nombre de la tarea.
- * @property {boolean} completed - Estado de completada.
- * @property {string} createdAt - Fecha ISO (ej: "2026-03-26T10:30:00.000Z").
- * @property {"alta"|"media"|"baja"} priority - Prioridad de la tarea.
- */
+const getEl = (id) => document.getElementById(id);
+const normalizePriority = (p) => (["alta", "media", "baja"].includes((p || "").toLowerCase()) ? p.toLowerCase() : "media");
 
-/**
- * Normaliza una prioridad para que siempre sea: "alta" | "media" | "baja".
- * @param {unknown} priority
- * @returns {"alta"|"media"|"baja"}
- */
-function normalizePriority(priority) {
-  const p = (typeof priority === "string" ? priority : "").toLowerCase();
-  if (p === "alta" || p === "media" || p === "baja") return p;
-  return "media";
-}
-
-/**
- * Registra el modo oscuro (lee/guarda preferencia en LocalStorage).
- * @returns {void}
- */
 function setupThemeToggle() {
-  const html = document.documentElement;
   const btn = getEl("toggle-dark");
-  if (!btn) return;
-
-  // Cargar preferencia guardada
-  if (localStorage.getItem("theme") === "dark") {
-    html.classList.add("dark");
-  }
-
-  // Guardar preferencia al cambiar
-  btn.addEventListener("click", () => {
-    html.classList.toggle("dark");
-    localStorage.setItem("theme", html.classList.contains("dark") ? "dark" : "light");
-  });
+  btn?.addEventListener("click", () => document.documentElement.classList.toggle("dark"));
 }
 
-/**
- * Devuelve texto y clases Tailwind para cada prioridad.
- * @param {"alta"|"media"|"baja"} priority
- * @returns {{label: string, className: string}}
- */
 function getPriorityMeta(priority) {
   const p = normalizePriority(priority);
-  if (p === "alta") {
-    return { label: "Alta", className: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100" };
-  }
-  if (p === "baja") {
-    return { label: "Baja", className: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100" };
-  }
+  if (p === "alta") return { label: "Alta", className: "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-100" };
+  if (p === "baja") return { label: "Baja", className: "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-100" };
   return { label: "Media", className: "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-100" };
 }
 
+function setNetworkState({ loading, error, success }) {
+  if (typeof loading === "boolean") isLoading = loading;
+  if (typeof error === "string") networkError = error;
+  if (typeof success === "string") networkSuccess = success;
 
-
-/**
- * Obtiene un elemento del DOM por `id`.
- * @param {string} id
- * @returns {HTMLElement | null}
- */
-function getEl(id) {
-  return document.getElementById(id);
+  getEl("network-loading")?.classList.toggle("hidden", !isLoading);
+  getEl("network-error")?.classList.toggle("hidden", !networkError);
+  getEl("network-success")?.classList.toggle("hidden", !networkSuccess);
+  if (getEl("network-error")) getEl("network-error").textContent = networkError;
+  if (getEl("network-success")) getEl("network-success").textContent = networkSuccess;
 }
 
-/**
- * Genera un id único basado en el timestamp actual.
- * @returns {string}
- */
-function generateId() {
-  return Date.now().toString();
-}
+function filteredAndSortedTasks() {
+  const search = (getEl("search")?.value || "").toLowerCase();
+  const rank = (priority) => (priority === "alta" ? 0 : priority === "media" ? 1 : 2);
 
+  let visible = tasks.filter((t) => t.title.toLowerCase().includes(search));
+  if (currentFilter === "pending") visible = visible.filter((t) => !t.completed);
+  if (currentFilter === "completed") visible = visible.filter((t) => t.completed);
+  if (currentPriorityFilter !== "all") visible = visible.filter((t) => normalizePriority(t.priority) === currentPriorityFilter);
 
-
-// 6.2 Define la estructura de una tarea como un objeto con id, title, completed y createdAt
-/**
- * Crea una tarea nueva con un `id` único, texto y estado inicial `completed=false`.
- * @param {string} title
- * @param {"alta"|"media"|"baja"} [priority]
- * @returns {Task}
- */
-function createTask(title, priority = "media") {
-  return {
-    id: generateId(),
-    title: title,
-    completed: false,
-    createdAt: new Date().toISOString(),
-    priority: normalizePriority(priority)
-  };
-}
-
-
-
-// 6.3 Implementa la funcionalidad para añadir nuevas tareas
-/**
- * Añade una tarea al estado global, persiste en LocalStorage y actualiza UI/estadísticas.
- * @param {string} title
- * @param {"alta"|"media"|"baja"} priority
- * @returns {void}
- */
-function addTask(title, priority) {
-  const newTask = createTask(title, priority);
-  tasks.push(newTask);
-  saveTasks(); 
-  renderTasks();
-  updateStats();
-}
-
-
-// 6.4 Renderiza las tareas en el DOM
-/**
- * Renderiza la lista de tareas aplicando filtros y búsqueda.
- * @returns {void}
- */
-function renderTasks() {
-  const list = document.getElementById("tasks");
-  const template = document.getElementById("task-template");
-  list.innerHTML = "";
-
-  const filteredTasks = getFilteredTasks();
-  const visibleTasks = sortTasks(currentSort, filteredTasks);
-
-  visibleTasks.forEach(task => {
-    const { clone, li, checkbox, text, deleteBtn } = createTaskElement(task, template);
-    attachTaskEventHandlers(task, { li, checkbox, text, deleteBtn });
-
-    // Animación crear
-    list.appendChild(clone);
-    requestAnimationFrame(() => {
-      li.classList.remove("opacity-0", "translate-y-2");
-    });
-  });
-
-}
-
-
-
-/**
- * Lee el texto de búsqueda del input y lo normaliza a minúsculas.
- * @returns {string}
- */
-function getSearchText() {
-  return document.getElementById("search")?.value.toLowerCase() || "";
-}
-
-/**
- * Aplica el filtro de pestaña (`currentFilter`) y la búsqueda por texto sobre `tasks`.
- * @returns {Task[]}
- */
-function getFilteredTasks() {
-  let filtered = tasks;
-
-  // Filtro por pestaña: todas, pendientes y completadas
-  if (currentFilter === "pending") {
-    filtered = filtered.filter(t => !t.completed);
-  } else if (currentFilter === "completed") {
-    filtered = filtered.filter(t => t.completed);
-  }
-
-  // Filtro por prioridad (opcional)
-  if (currentPriorityFilter !== "all") {
-    filtered = filtered.filter(t => normalizePriority(t.priority) === currentPriorityFilter);
-  }
-
-  // Búsqueda por texto en las tareas
-  const searchText = getSearchText();
-  return filtered.filter(task =>
-    task.title.toLowerCase().includes(searchText)
-  );
-}
-
-/**
- * Ordena tareas sin modificar los datos originales (devuelve un array nuevo).
- * criteria: "date" | "name" | "priority"
- * @param {"date"|"name"|"priority"} criteria
- * @param {Task[]} tasksToSort
- * @returns {Task[]}
- */
-function sortTasks(criteria, tasksToSort) {
-  const list = Array.isArray(tasksToSort) ? [...tasksToSort] : [];
-
-  const priorityRank = (p) => {
-    const pr = normalizePriority(p);
-    if (pr === "alta") return 0;
-    if (pr === "media") return 1;
-    return 2; // baja
-  };
-
-  if (criteria === "name") {
-    return list.sort((a, b) => a.title.localeCompare(b.title, "es", { sensitivity: "base" }));
-  }
-
-  if (criteria === "priority") {
+  const list = [...visible];
+  if (currentSort === "name") return list.sort((a, b) => a.title.localeCompare(b.title, "es", { sensitivity: "base" }));
+  if (currentSort === "priority") {
     return list.sort((a, b) => {
-      const byPriority = priorityRank(a.priority) - priorityRank(b.priority);
+      const byPriority = rank(a.priority) - rank(b.priority);
       if (byPriority !== 0) return byPriority;
       return (b.createdAt || "").localeCompare(a.createdAt || "");
     });
   }
-
-  // "date" (por defecto): más recientes primero
-  return list.sort((a, b) => {
-    const byDate = (b.createdAt || "").localeCompare(a.createdAt || "");
-    if (byDate !== 0) return byDate;
-    return a.title.localeCompare(b.title, "es", { sensitivity: "base" });
-  });
+  return list.sort((a, b) => (b.createdAt || "").localeCompare(a.createdAt || ""));
 }
 
-/**
- * Crea (clona) el nodo DOM de una tarea usando el template y rellena sus campos.
- * @param {Task} task
- * @param {HTMLTemplateElement} template
- * @returns {{clone: DocumentFragment, li: Element, checkbox: HTMLInputElement, text: Element, deleteBtn: HTMLButtonElement}}
- */
-function createTaskElement(task, template) {
-  const clone = template.content.cloneNode(true);
+function renderStats() {
+  const total = tasks.length;
+  const completed = tasks.filter((t) => t.completed).length;
+  getEl("total").textContent = String(total);
+  getEl("completed").textContent = String(completed);
+  getEl("pending").textContent = String(total - completed);
+}
 
-  const li = clone.querySelector("li");
-  const checkbox = clone.querySelector(".task-check");
-  const text = clone.querySelector(".task-text");
-  const priorityEl = clone.querySelector(".task-priority");
-  const deleteBtn = clone.querySelector(".delete-btn");
+function renderTasks() {
+  const list = getEl("tasks");
+  const template = getEl("task-template");
+  list.innerHTML = "";
 
-  text.textContent = task.title;
-  checkbox.checked = task.completed;
+  filteredAndSortedTasks().forEach((task) => {
+    const clone = template.content.cloneNode(true);
+    const li = clone.querySelector("li");
+    const checkbox = clone.querySelector(".task-check");
+    const text = clone.querySelector(".task-text");
+    const priorityEl = clone.querySelector(".task-priority");
+    const deleteBtn = clone.querySelector(".delete-btn");
 
-  if (priorityEl) {
+    text.textContent = task.title;
+    checkbox.checked = task.completed;
+    checkbox.addEventListener("change", () => {
+      tasks = tasks.map((t) => (t.id === task.id ? { ...t, completed: !t.completed } : t));
+      renderTasks();
+      renderStats();
+    });
+
     const meta = getPriorityMeta(task.priority);
     priorityEl.textContent = meta.label;
     priorityEl.className = `task-priority px-2 py-1 text-xs font-semibold rounded ${meta.className}`;
-  }
 
-  return { clone, li, checkbox, text, deleteBtn };
-}
+    deleteBtn.addEventListener("click", async () => {
+      if (!confirm("¿Seguro que quieres borrar esta tarea?")) return;
+      li.classList.add("opacity-0", "translate-y-2");
+      setTimeout(async () => {
+        setNetworkState({ loading: true, error: "", success: "" });
+        try {
+          await deleteTaskApi(task.id);
+          tasks = tasks.filter((t) => t.id !== task.id);
+          setNetworkState({ loading: false, error: "", success: "Tarea eliminada correctamente." });
+        } catch (error) {
+          setNetworkState({ loading: false, error: error?.message || "No se pudo eliminar la tarea.", success: "" });
+        }
+        renderTasks();
+        renderStats();
+      }, 200);
+    });
 
-/**
- * Asigna listeners (editar, marcar completada, eliminar) a los elementos de la tarea.
- * @param {Task} task
- * @param {{li: Element, checkbox: HTMLInputElement, text: Element, deleteBtn: HTMLButtonElement}} elements
- * @returns {void}
- */
-function attachTaskEventHandlers(task, { li, checkbox, text, deleteBtn }) {
-  // Permite editar el título de una tarea existente
-  text.addEventListener("dblclick", () => {
-    const newTitle = prompt("Editar tarea:", task.title);
-    if (newTitle && newTitle.trim() !== "") {
-      editarTareaPorId(task.id, newTitle.trim());
-    }
-  });
-
-  // Permite marcar tareas como completadas
-  checkbox.addEventListener("change", () => toggleTask(task.id));
-
-  // Animación + eliminar
-  deleteBtn.addEventListener("click", () => {
-    const ok = confirm("¿Seguro que quieres borrar esta tarea?");
-    if (!ok) return;
-
-    li.classList.add("opacity-0", "translate-y-2");
-    setTimeout(() => {
-      deleteTask(task.id);
-    }, 300);
+    list.appendChild(clone);
+    requestAnimationFrame(() => li.classList.remove("opacity-0", "translate-y-2"));
   });
 }
 
+function setupEvents() {
+  setupThemeToggle();
 
-// 6.5 Permite marcar tareas como completadas
-/**
- * Alterna `completed` de una tarea por `id` y refresca UI/estadísticas.
- * @param {string} id
- * @returns {void}
- */
-function toggleTask(id) {
-  tasks = tasks.map(task =>
-    task.id === id ? { ...task, completed: !task.completed } : task
-  );
-  saveTasks(); 
-  renderTasks();
-  updateStats();
-}
-
-/**
- * Edita el título de una tarea buscando por `id`.
- * @param {string} id
- * @param {string} nuevoTitulo
- * @returns {boolean} `true` si se editó, `false` si no se encontró o el título es inválido.
- */
-function editarTareaPorId(id, nuevoTitulo) {
-  // 1) Buscar la tarea por su id
-  const task = tasks.find(t => t.id === id);
-  if (!task) return false;
-
-  // 2) Actualizar su título
-  const title = (nuevoTitulo ?? "").trim();
-  if (title === "") return false;
-  task.title = title;
-
-  // 3) Guardar los cambios en localStorage
-  saveTasks();
-
-  // 4) Volver a renderizar la lista
-  renderTasks();
-  updateStats();
-
-  return true;
-}
-
-// 6.6 Permite eliminar tareas
-/**
- * Elimina la tarea indicada y refresca UI/estadísticas.
- * @param {string} id
- * @returns {void}
- */
-function deleteTask(id) {
-  tasks = tasks.filter(task => task.id !== id);
-  saveTasks(); 
-  renderTasks();
-  updateStats();
-}
-
-
-// 6.7 Actualiza las estadísticas cuando cambien las tareas
-/**
- * Calcula estadísticas sobre una lista de tareas.
- * @param {Array<{completed: boolean}>} tasksToMeasure
- * @returns {{total: number, completed: number, pending: number}}
- */
-function getStats(tasksToMeasure) {
-  const total = tasksToMeasure.length;
-  const completed = tasksToMeasure.filter(t => t.completed).length;
-  const pending = total - completed;
-
-  return { total, completed, pending };
-}
-
-/**
- * Actualiza los valores del panel de estadísticas en el DOM.
- * @returns {void}
- */
-function updateStats() {
-  const { total, completed, pending } = getStats(tasks);
-
-  document.getElementById("total").textContent = total;
-  document.getElementById("completed").textContent = completed;
-  document.getElementById("pending").textContent = pending;
-}
-
-
-
-/**
- * Registra el submit del formulario para añadir nuevas tareas.
- * @returns {void}
- */
-function setupTaskForm() {
   const form = getEl("task-form");
   const input = getEl("task-input");
-  const prioritySelect = getEl("task-priority");
-  if (!form || !input || !prioritySelect) return;
-
-  form.addEventListener("submit", function (e) {
+  const priority = getEl("task-priority");
+  form?.addEventListener("submit", async (e) => {
     e.preventDefault();
-
     const title = input.value.trim();
-    if (title === "") return;
-
-    const priority = normalizePriority(prioritySelect.value);
-    addTask(title, priority);
-    input.value = "";
+    if (!title) return;
+    setNetworkState({ loading: true, error: "", success: "" });
+    try {
+      const task = await createTaskApi(title, normalizePriority(priority.value));
+      tasks.push(task);
+      input.value = "";
+      setNetworkState({ loading: false, error: "", success: "Tarea creada correctamente." });
+    } catch (error) {
+      setNetworkState({ loading: false, error: error?.message || "No se pudo crear la tarea.", success: "" });
+    }
+    renderTasks();
+    renderStats();
   });
-}
 
-/**
- * Muestra y actualiza el contador de caracteres del input.
- * @returns {void}
- */
-function setupCharCounter() {
-  const input = getEl("task-input");
   const counter = getEl("char-counter");
-  if (!input || !counter) return;
+  if (input && counter) {
+    const max = Number(input.getAttribute("maxlength")) || 50;
+    const paint = () => {
+      counter.textContent = `${input.value.length}/${max} caracteres`;
+    };
+    paint();
+    input.addEventListener("input", paint);
+  }
 
-  const max = Number(input.getAttribute("maxlength")) || 50;
-
-  const render = () => {
-    const len = (input.value || "").length;
-    counter.textContent = `${len}/${max} caracteres`;
-  };
-
-  render();
-  input.addEventListener("input", render);
-}
-
-/**
- * Registra el comportamiento de los botones de filtro.
- * @returns {void}
- */
-function setupFilters() {
-  document.querySelectorAll("#filters button").forEach(btn => {
+  document.querySelectorAll("#filters button").forEach((btn) => {
     btn.addEventListener("click", () => {
       currentFilter = btn.dataset.filter;
       renderTasks();
     });
   });
-}
-
-/**
- * Registra la búsqueda incremental por texto.
- * @returns {void}
- */
-function setupSearch() {
-  const search = getEl("search");
-  search?.addEventListener("input", renderTasks);
-}
-
-/**
- * Registra el filtro por prioridad.
- * @returns {void}
- */
-function setupPriorityFilter() {
-  const priorityFilter = getEl("priority-filter");
-  if (!priorityFilter) return;
-
-  priorityFilter.addEventListener("change", () => {
-    currentPriorityFilter = priorityFilter.value;
+  getEl("search")?.addEventListener("input", renderTasks);
+  getEl("priority-filter")?.addEventListener("change", (e) => {
+    currentPriorityFilter = e.target.value;
     renderTasks();
+  });
+  getEl("sort")?.addEventListener("change", (e) => {
+    currentSort = e.target.value;
+    renderTasks();
+  });
+
+  getEl("complete-all")?.addEventListener("click", () => {
+    tasks = tasks.map((t) => ({ ...t, completed: true }));
+    renderTasks();
+    renderStats();
+  });
+
+  getEl("delete-completed")?.addEventListener("click", async () => {
+    const completed = tasks.filter((t) => t.completed);
+    if (!completed.length) return;
+    setNetworkState({ loading: true, error: "", success: "" });
+    try {
+      await Promise.all(completed.map((t) => deleteTaskApi(t.id)));
+      tasks = tasks.filter((t) => !t.completed);
+      setNetworkState({ loading: false, error: "", success: "Tareas completadas eliminadas." });
+    } catch (error) {
+      setNetworkState({ loading: false, error: error?.message || "No se pudieron eliminar las tareas completadas.", success: "" });
+    }
+    renderTasks();
+    renderStats();
   });
 }
 
-/**
- * Registra el selector de ordenación.
- * @returns {void}
- */
-function setupSort() {
-  const sortSelect = getEl("sort");
-  if (!sortSelect) return;
-
-  sortSelect.addEventListener("change", () => {
-    currentSort = sortSelect.value;
-    renderTasks();
-  });
-}
-
-/**
- * Registra acciones masivas: completar todas y eliminar completadas.
- * @returns {void}
- */
-function setupBulkActions() {
-  const completeAllBtn = getEl("complete-all");
-  const deleteCompletedBtn = getEl("delete-completed");
-
-  completeAllBtn?.addEventListener("click", () => {
-    tasks = tasks.map(t => ({ ...t, completed: true }));
-    saveTasks();
-    renderTasks();
-    updateStats();
-  });
-
-  deleteCompletedBtn?.addEventListener("click", () => {
-    tasks = tasks.filter(t => !t.completed);
-    saveTasks();
-    renderTasks();
-    updateStats();
-  });
-}
-
-/**
- * Inicializa TaskFlow: registra listeners y realiza render inicial.
- * @returns {void}
- */
-function initTaskFlow() {
-  setupThemeToggle();
-  setupTaskForm();
-  setupCharCounter();
-  setupFilters();
-  setupSearch();
-  setupPriorityFilter();
-  setupSort();
-  setupBulkActions();
-
-  // Carga desde LocalStorage y renderiza por primera vez.
-  loadTasks();
+async function init() {
+  setupEvents();
+  setNetworkState({ loading: true, error: "", success: "" });
+  try {
+    tasks = await fetchTasksApi();
+    setNetworkState({ loading: false, error: "", success: "Tareas cargadas correctamente." });
+  } catch (error) {
+    tasks = [];
+    setNetworkState({ loading: false, error: error?.message || "No se pudieron cargar las tareas.", success: "" });
+  }
   renderTasks();
-  updateStats();
+  renderStats();
 }
 
-initTaskFlow();
+void init();

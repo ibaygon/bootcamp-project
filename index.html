@@ -88,6 +88,12 @@
         <section id="lista-tareas" class="w-full bg-white dark:bg-gray-800 p-6 rounded shadow">
             <h2 class="text-xl font-semibold mb-4">Lista de tareas</h2>
 
+            <div id="network-loading" class="hidden mb-4 rounded border border-blue-200 bg-blue-50 px-3 py-2 text-blue-700">
+                Cargando tareas desde el servidor...
+            </div>
+            <div id="network-error" class="hidden mb-4 rounded border border-red-200 bg-red-50 px-3 py-2 text-red-700"></div>
+            <div id="network-success" class="hidden mb-4 rounded border border-green-200 bg-green-50 px-3 py-2 text-green-700"></div>
+
             <div id="filters" class="flex gap-3 mb-4">
                 <button data-filter="all" class="px-3 py-1 bg-gray-200 dark:bg-gray-700 rounded">Todas</button>
                 <button data-filter="pending" class="px-3 py-1 bg-gray-200 dark:bg-gray-700 rounded">Activas</button>
@@ -150,6 +156,6 @@
         <p>2026 TaskFlow</p>
     </footer>
 
-    <script src="app.js"></script>
+    <script type="module" src="app.js"></script>
 </body>
 </html>
